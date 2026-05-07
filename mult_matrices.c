@@ -9,14 +9,14 @@ int A[MAX_TAM][MAX_TAM];
 int B[MAX_TAM][MAX_TAM];
 int C[MAX_TAM][MAX_TAM];
 
-void fill_matrix(int mat[MAX_TAM][MAX_TAM], int tam)
-{
+void rellenar_matriz(int mat[MAX_TAM][MAX_TAM], int tam)
+{   
     for (int i = 0; i < tam; i++)
         for (int j = 0; j < tam; j++)
             mat[i][j] = (rand() % 10) + 1;
 }
 
-void multiply_rows(int local_C[MAX_TAM][MAX_TAM], int local_A[MAX_TAM][MAX_TAM],
+void multiplicar_filas(int local_C[MAX_TAM][MAX_TAM], int local_A[MAX_TAM][MAX_TAM],
                    int tam, int num_rows)
 {
     for (int i = 0; i < num_rows; i++)
@@ -27,8 +27,8 @@ void multiply_rows(int local_C[MAX_TAM][MAX_TAM], int local_A[MAX_TAM][MAX_TAM],
                 local_C[i][j] += local_A[i][k] * B[k][j];
         }
 }
-
-void print_matrix(int mat[MAX_TAM][MAX_TAM], int tam)
+/*
+void imprimir_matriz(int mat[MAX_TAM][MAX_TAM], int tam)
 {
     for (int i = 0; i < tam; i++)
     {
@@ -37,8 +37,11 @@ void print_matrix(int mat[MAX_TAM][MAX_TAM], int tam)
         printf("\n");
     }
 }
+*/
 
-int validate_args(int argc, char **argv, int world_size, int *tam)
+//Control de errores para el tamaño que pasamos por línea de argumentos en función número de nodos
+//La funcion retorna 1 si es correcto el control de errores , 0 si es incorrecto
+int comprobar_argumentos(int argc, char **argv, int world_size, int *tam)
 {
     if (argc != 2)
     {
@@ -59,13 +62,6 @@ int validate_args(int argc, char **argv, int world_size, int *tam)
         printf("Error: TAM (%d) debe ser multiplo del numero de nodos (%d).\n", *tam, world_size);
         return 0;
     }
-
-    if (*tam % 8 != 0)
-    {
-        printf("Error: TAM (%d) debe ser multiplo de 8.\n", *tam);
-        return 0;
-    }
-
     return 1;
 }
 
@@ -82,7 +78,7 @@ int main(int argc, char **argv)
 
     if (world_rank == 0)
     {
-        valid = validate_args(argc, argv, world_size, &tam);
+        valid = comprobar_argumentos(argc, argv, world_size, &tam);
     }
 
     MPI_Bcast(&valid, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -99,11 +95,12 @@ int main(int argc, char **argv)
     int local_A[MAX_TAM][MAX_TAM];
     int local_C[MAX_TAM][MAX_TAM];
 
+    //nodo 0 inicializa las matriz
     if (world_rank == 0)
     {
         srand(time(NULL));
-        fill_matrix(A, tam);
-        fill_matrix(B, tam);
+        rellenar_matriz(A, tam);
+        rellenar_matriz(B, tam);
     }
 
     MPI_Bcast(B, MAX_TAM * MAX_TAM, MPI_INT, 0, MPI_COMM_WORLD);
@@ -114,7 +111,7 @@ int main(int argc, char **argv)
 
     double t_inicio = MPI_Wtime();
 
-    multiply_rows(local_C, local_A, tam, rows_per_process);
+    multiplicar_filas(local_C, local_A, tam, rows_per_process);
 
     double t_fin = MPI_Wtime();
 
